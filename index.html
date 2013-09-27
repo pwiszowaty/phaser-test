@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>phaser - hello world</title>
+	<script src="../phaser/build/phaser.min.js"></script>
+	<script src="jquery-1.10.2.min.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var assets, folder = 'parts';
+
+$.getJSON( folder+".json", function( data ) {
+	assets = data;
+})
+.always(function(){
+	startGame();
+});
+
+var startGame = function () {
+
+	var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+	var logo, keys=Phaser.Keyboard;
+	var hero;
+	var sprites;
+	 
+	function preload() { 		
+		preloadAsset('body');
+		preloadAsset('cockpit');
+		preloadAsset('engine');
+		preloadAsset('gun');
+		preloadAsset('wing');
+
+		game.load.spritesheet('button', 'button.png', 73, 37);
+		game.load.image('bg','bg.jpg');
+
+	}
+
+	function preloadAsset(group){
+		console.log(group);
+		console.log(assets[group].length);
+		for( var i = 0; i < assets[group].length; i++ ){
+			console.log('indalup');
+			game.load.image(assets[group][i].name, folder + '/' + assets[group][i].name + ".png" );
+			console.log(assets[group][i].name);
+		}
+	}
+	
+	function create() {		
+		game.add.tileSprite(0, 0, 2000, 2000, 'bg');
+		game.world.setSize(1400, 1400);
+
+		button = game.add.button(game.world.centerX, 100, 'button', regenerateShip, this, 2, 1, 0);
+
+		console.log(game.world.centerX);
+		console.log(game);
+
+		$('#build').click(function(){
+			regenerateShip();
+		});
+		
+		hero = game.add.sprite(game.world.centerX, game.world.centerY, 'b1');
+		hero.anchor.x = 0.5;
+		hero.anchor.y = 0.5;
+		game.camera.follow(hero);
+	}
+
+	function update() {
+		//logo.angle++;
+
+		hero.body.velocity.x=hero.body.velocity.y=0;
+
+		if(game.input.keyboard.isDown(keys.LEFT) && !game.input.keyboard.isDown(keys.RIGHT)){
+			hero.body.velocity.x=-155;
+		}
+		else if(game.input.keyboard.isDown(keys.RIGHT) && !game.input.keyboard.isDown(keys.LEFT)){
+			hero.body.velocity.x=155;
+		}
+
+		if(game.input.keyboard.isDown(keys.UP) && !game.input.keyboard.isDown(keys.DOWN)){
+			hero.body.velocity.y=-155;
+		}
+		else if(game.input.keyboard.isDown(keys.DOWN) && !game.input.keyboard.isDown(keys.UP)){
+			hero.body.velocity.y=155;
+		}
+	}
+
+	function regenerateShip() {
+		hero.visible=!hero.visible;
+	}
+
+};
+
+</script>
+
+<div id="gui">
+	<button id="build">regenerate ship</button>
+</div>
+
+</body>
+</html>
