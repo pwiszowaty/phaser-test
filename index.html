@@ -21,9 +21,18 @@ $.getJSON( folder+".json", function( data ) {
 var startGame = function () {
 
 	var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
-	var logo, keys=Phaser.Keyboard;
-	var hero;
-	var sprites;
+	var logo, 
+		keys=Phaser.Keyboard, 
+		hero, 
+		sprites,
+		background1, 
+		bgspeed = 1,
+		speedFactor = 1,
+		speedStep = 150, 
+		bulletSpeed = 600,
+		bullets,
+		bulletTime = 0, 
+		maxBullets = 100;
 	 
 	function preload() { 		
 		preloadAsset('body');
@@ -32,38 +41,47 @@ var startGame = function () {
 		preloadAsset('gun');
 		preloadAsset('wing');
 
-		game.load.spritesheet('button', 'button.png', 73, 37);
+		game.load.image('bullet', '../phaser/examples/assets/misc/bullet0.png');
+		
 		game.load.image('bg','bg.jpg');
-
 	}
 
 	function preloadAsset(group){
-		console.log(group);
-		console.log(assets[group].length);
 		for( var i = 0; i < assets[group].length; i++ ){
-			console.log('indalup');
 			game.load.image(assets[group][i].name, folder + '/' + assets[group][i].name + ".png" );
-			console.log(assets[group][i].name);
 		}
 	}
 	
 	function create() {		
-		game.add.tileSprite(0, 0, 2000, 2000, 'bg');
-		game.world.setSize(1400, 1400);
-
-		button = game.add.button(game.world.centerX, 100, 'button', regenerateShip, this, 2, 1, 0);
-
-		console.log(game.world.centerX);
-		console.log(game);
+		background1 = game.add.tileSprite(0, 0, 2000, 2000, 'bg');
+		game.world.setSize(2000, 2000);
 
 		$('#build').click(function(){
 			regenerateShip();
 		});
+
+		$('#angle').change(function(){
+			hero.angle = $(this).val();
+		});
 		
-		hero = game.add.sprite(game.world.centerX, game.world.centerY, 'b1');
+		hero = game.add.sprite(game.world.centerX, game.world.centerY, 'b2');
+		
 		hero.anchor.x = 0.5;
 		hero.anchor.y = 0.5;
 		game.camera.follow(hero);
+		
+        bullets = game.add.group(null, 'bullets');
+
+        for (var i = 0; i < maxBullets; i++)
+        {
+            var b = bullets.create(0, 0, 'bullet');
+            b.name = 'bullet' + i;
+            b.exists = false;
+            b.visible = false;
+            b.events.onOutOfBounds.add(resetBullet, this);
+        }
+		
+		game.input.onDown.add(fireBullet, this);
 	}
 
 	function update() {
@@ -71,32 +89,82 @@ var startGame = function () {
 
 		hero.body.velocity.x=hero.body.velocity.y=0;
 
-		if(game.input.keyboard.isDown(keys.LEFT) && !game.input.keyboard.isDown(keys.RIGHT)){
-			hero.body.velocity.x=-155;
+		if(game.input.keyboard.isDown(keys.A) && !game.input.keyboard.isDown(keys.D)){
+			hero.body.velocity.x = - (speedStep * speedFactor);
 		}
-		else if(game.input.keyboard.isDown(keys.RIGHT) && !game.input.keyboard.isDown(keys.LEFT)){
-			hero.body.velocity.x=155;
+		else if(game.input.keyboard.isDown(keys.D) && !game.input.keyboard.isDown(keys.A)){
+			hero.body.velocity.x = speedStep * speedFactor;
 		}
 
-		if(game.input.keyboard.isDown(keys.UP) && !game.input.keyboard.isDown(keys.DOWN)){
-			hero.body.velocity.y=-155;
+		if(game.input.keyboard.isDown(keys.W) && !game.input.keyboard.isDown(keys.S)){
+			hero.body.velocity.y = - speedStep * speedFactor;
 		}
-		else if(game.input.keyboard.isDown(keys.DOWN) && !game.input.keyboard.isDown(keys.UP)){
-			hero.body.velocity.y=155;
+		else if(game.input.keyboard.isDown(keys.S) && !game.input.keyboard.isDown(keys.W)){
+			hero.body.velocity.y = speedStep * speedFactor;
 		}
+
+		moveBackground();
+		lookAtPointer();
 	}
 
 	function regenerateShip() {
-		hero.visible=!hero.visible;
+		//hero.visible=!hero.visible;
+
+		hero.x = game.world.centerX;
+		hero.y = game.world.centerY;
+		console.log(hero.x + ' vs ' + game.world.centerX);
+		console.log(hero.y + ' vs ' + game.world.centerY);
+		console.log(hero);
 	}
 
+	function moveBackground() {
+		background1.position.y - (bgspeed); 
+
+	}
+
+	function lookAtPointer() {
+		hero.angle = Phaser.Math.radToDeg(Phaser.Math.angleBetween( -hero.position.y, hero.position.x, -game.input.y, game.input.x)); 
+	}
+
+    function fireBullet () {
+
+        if (game.time.now > bulletTime)
+        {
+            bullet = bullets.getFirstExists(false);
+
+            if (bullet)
+            {
+                bullet.angle = hero.angle;
+
+                bullet.anchor.x = 0.5;
+                bullet.anchor.y = 0.5;
+                
+				var valX = game.input.x - hero.position.x; 
+				var valY = - (game.input.y - hero.position.y);
+				var valSum = Math.abs(valX) + Math.abs(valY);
+
+                bullet.reset(hero.x, hero.y);
+                bullet.velocity.y = - (valY / valSum) * bulletSpeed;
+                bullet.velocity.x = (valX / valSum) * bulletSpeed;
+                //bulletTime = game.time.now + 250;
+            }
+        }
+
+    }
+
+    //  Called if the bullet goes out of the screen
+    function resetBullet (bullet) {
+        bullet.kill();
+    }
 };
 
 </script>
 
 <div id="gui">
 	<button id="build">regenerate ship</button>
+	<input id="angle" value="0" />
 </div>
 
 </body>
 </html>
+
