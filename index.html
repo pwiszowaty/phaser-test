@@ -32,7 +32,10 @@ var startGame = function () {
 		bulletSpeed = 600,
 		bullets,
 		bulletTime = 0, 
-		maxBullets = 100;
+		maxBullets = 100,
+		maxObjects = 100, 
+		objects = [], 
+		generator;
 	 
 	function preload() { 		
 		preloadAsset('body');
@@ -56,15 +59,22 @@ var startGame = function () {
 		background1 = game.add.tileSprite(0, 0, 2000, 2000, 'bg');
 		game.world.setSize(2000, 2000);
 
+		generator = new Phaser.RandomDataGenerator();
+		
 		$('#build').click(function(){
 			regenerateShip();
 		});
 
+		$('#nextWave').click(function(){
+			addRandomObjects(20, 1);
+		});
+		
 		$('#angle').change(function(){
 			hero.angle = $(this).val();
 		});
 		
-		hero = game.add.sprite(game.world.centerX, game.world.centerY, 'b2');
+		//hero = game.add.sprite(game.world.centerX, game.world.centerY, 'b2');
+		hero = game.add.sprite(20, 20, 'b2');
 		
 		hero.anchor.x = 0.5;
 		hero.anchor.y = 0.5;
@@ -78,7 +88,18 @@ var startGame = function () {
             b.name = 'bullet' + i;
             b.exists = false;
             b.visible = false;
-            b.events.onOutOfBounds.add(resetBullet, this);
+            b.events.onOutOfBounds.add(resetObject, this);
+        }
+
+        objects = game.add.group(null, 'objects');
+
+        for (var i = 0; i < maxObjects; i++)
+        {
+            var b = objects.create(0, 0, 'b1');
+            b.name = 'object' + i;
+            b.exists = false;
+            b.visible = false;
+            b.events.onOutOfBounds.add(resetObject, this);
         }
 		
 		game.input.onDown.add(fireBullet, this);
@@ -105,6 +126,7 @@ var startGame = function () {
 
 		moveBackground();
 		lookAtPointer();
+		collideObjects();
 	}
 
 	function regenerateShip() {
@@ -126,6 +148,10 @@ var startGame = function () {
 		hero.angle = Phaser.Math.radToDeg(Phaser.Math.angleBetween( -hero.position.y, hero.position.x, -game.input.y, game.input.x)); 
 	}
 
+	function collideObjects () {
+		game.physics.collide(bullets, objects, objectHit, null, this);
+	}
+	
     function fireBullet () {
 
         if (game.time.now > bulletTime)
@@ -152,9 +178,33 @@ var startGame = function () {
 
     }
 
+	function objectHit(_bullet, _obj) {
+		console.log('direct hit!');
+		_bullet.kill();
+		_obj.kill();
+	}
+    
     //  Called if the bullet goes out of the screen
-    function resetBullet (bullet) {
-        bullet.kill();
+    function resetObject (obj) {
+    	obj.kill();
+    }
+
+    function addRandomObjects (count, level) {
+        for (i=0; i<count; i++) {
+
+            obj = objects.getFirstExists(false);
+
+            if (obj)
+            {
+            	obj.anchor.x = 0.5;
+            	obj.anchor.y = 0.5;
+
+            	obj.reset(- generator.integerInRange(0, 100), - generator.integerInRange(0, 100));
+            	obj.velocity.x = generator.integerInRange(100, 160);
+            	obj.velocity.y = generator.integerInRange(100, 160);
+                //bulletTime = game.time.now + 250;
+            }
+        }
     }
 };
 
@@ -162,6 +212,7 @@ var startGame = function () {
 
 <div id="gui">
 	<button id="build">regenerate ship</button>
+	<button id="nextWave">next wave</button>
 	<input id="angle" value="0" />
 </div>
 
